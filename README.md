@@ -1,4 +1,4 @@
-# RequestLens — Real-Time API Observability & Telemetry Dashboard (Frontend)
+# RequestLens: Real-Time API Observability & Telemetry Dashboard (Frontend)
 
 **RequestLens** is a real-time API monitoring, telemetry ingestion, and automated alerting platform built for modern engineering teams. It enables developers to track endpoint latency, visualize traffic and status code distributions, inspect live request streams, and receive automated incident alerts when `5xx` server errors spike.
 
@@ -34,51 +34,6 @@ Engineering teams frequently face silent API degradations such as creeping endpo
 ## System Architecture & End-to-End Data Flow
 
 RequestLens is split into two decoupled services (**`requestlens-frontend`** and **`requestlens-backend`**) that communicate via REST APIs and persistent WebSocket channels.
-
-```mermaid
-flowchart TD
-    subgraph ClientApps["Monitored Client Applications"]
-        EXT["External APIs (Express / FastAPI / cURL)"]
-        SIM["Dashboard Log Simulator"]
-    end
-
-    subgraph Backend["RequestLens Backend (Express + TypeScript)"]
-        INGEST["POST /api/logs (API Key Auth)"]
-        REST["REST API (/api/auth, /api/projects, /api/stats)"]
-        WS["Socket.IO Server (JWT Handshake + Project Rooms)"]
-        ALERT_EVAL["Async Alert Evaluator"]
-        BULL["BullMQ Queue (Redis)"]
-        WORKER["Alert Email Worker (Resend)"]
-    end
-
-    subgraph Database["Persistence Layer"]
-        PG[("PostgreSQL (Prisma ORM)")]
-        REDIS[("Redis")]
-    end
-
-    subgraph Frontend["RequestLens Frontend (Next.js 16 App Router)"]
-        UI["Dashboard UI (Recharts + Radix UI)"]
-        RQ["TanStack React Query Cache"]
-        HOOK["useSocket Hook (socket.io-client)"]
-    end
-
-    EXT -->|"Bearer <API_KEY>"| INGEST
-    SIM -->|"Bearer <API_KEY>"| INGEST
-    INGEST -->|"1. Store ApiLog"| PG
-    INGEST -->|"2. Emit 'new_log' to room"| WS
-    INGEST -->|"3. Trigger async check"| ALERT_EVAL
-
-    ALERT_EVAL -->|"Query window & cooldown"| PG
-    ALERT_EVAL -->|"Breach detected"| BULL
-    BULL <--> REDIS
-    BULL --> WORKER
-
-    WS ==>|"Real-time 'new_log' event"| HOOK
-    HOOK -->|"Invalidate queries"| RQ
-    RQ <-->|"Fetch fresh stats & logs"| REST
-    REST <--> PG
-    RQ --> UI
-```
 
 ### How the Frontend & Backend Work Together
 
